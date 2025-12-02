@@ -59,7 +59,6 @@ void MaxEtMinA(int T[], int n, int *min, int *max) {
 }
 
 
-#include <stdio.h>
 
 void MaxEtMinB(int T[], int n, int *min, int *max) {
 
