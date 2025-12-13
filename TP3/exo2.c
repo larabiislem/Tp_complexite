@@ -1,12 +1,35 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
-/*
-  Recherche naïve de la sous-matrice B dans A.
-  Retourne 1 si trouvée, 0 sinon.
-*/
+/* Allocation matrices   */
+int **allocMat(int n, int m) {
+    int **M = malloc(n * sizeof(int *));
+    for (int i = 0; i < n; i++)
+        M[i] = malloc(m * sizeof(int));
+    return M;
+}
 
+void freeMat(int **M, int n) {
+    for (int i = 0; i < n; i++)
+        free(M[i]);
+    free(M);
+}
+
+/* Initialisation triee  */
+void initMatTriee(int **M, int n, int m) {
+    int val = rand() % 5;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            val += rand() % 3;   // garantit ordre croissant par ligne
+            M[i][j] = val;
+        }
+    }
+}
+
+/* sousMat1 : naïve      */
 int sousMat1(int **A, int n, int m, int **B, int n1, int m1) {
+
     for (int i = 0; i <= n - n1; i++) {
         for (int j = 0; j <= m - m1; j++) {
 
@@ -21,30 +44,26 @@ int sousMat1(int **A, int n, int m, int **B, int n1, int m1) {
                 }
             }
 
-            if (ok) return 1;  
+            if (ok) return 1;
         }
     }
-    return 0; 
+    return 0;
 }
 
-
-/*
-  Version optimisee lorsque LES LIGNES DE A ET B SONT TRIÉES.
-  Retourne 1 si trouvé, 0 sinon.
-*/
-
+/* sousMat2 : optimisee  */
 int sousMat2(int **A, int n, int m, int **B, int n1, int m1) {
 
     for (int i = 0; i <= n - n1; i++) {
 
         for (int j = 0; j <= m - m1; j++) {
 
-            // Filtre rapide sur la premiere ligne (triee)
+            // Filtrage rapide (lignes triees)
             if (A[i][j] > B[0][0]) continue;
             if (A[i][j + m1 - 1] < B[0][m1 - 1]) continue;
 
-            // Verification de la premiere ligne
             int ok = 1;
+
+            // Verif premiere ligne
             for (int jj = 0; jj < m1; jj++) {
                 if (A[i][j + jj] != B[0][jj]) {
                     ok = 0;
@@ -52,12 +71,9 @@ int sousMat2(int **A, int n, int m, int **B, int n1, int m1) {
                 }
             }
 
-            if (!ok) continue;
-
-            // Verification des lignes suivantes
+            // Verif autres lignes
             for (int ii = 1; ii < n1 && ok; ii++) {
 
-                // Filtre rapide car lignes triees
                 if (A[i + ii][j] > B[ii][0]) { ok = 0; break; }
                 if (A[i + ii][j + m1 - 1] < B[ii][m1 - 1]) { ok = 0; break; }
 
@@ -69,48 +85,54 @@ int sousMat2(int **A, int n, int m, int **B, int n1, int m1) {
                 }
             }
 
-            if (ok) return 1; 
+            if (ok) return 1;
         }
     }
-
-    return 0; 
+    return 0;
 }
 
+int main(int argc, char *argv[]) {
 
-int sousMat1(int **A, int n, int m, int **B, int n1, int m1);
-int sousMat2(int **A, int n, int m, int **B, int n1, int m1);
+    if (argc != 5) {
+        printf("Usage : %s n m n1 m1\n", argv[0]);
+        return 1;
+    }
 
-int main() {
-    int n = 4, m = 5;
-    int n1 = 2, m1 = 3;
+    int n  = atoi(argv[1]);
+    int m  = atoi(argv[2]);
+    int n1 = atoi(argv[3]);
+    int m1 = atoi(argv[4]);
 
-    // Matrice A
-    int **A = malloc(n * sizeof(int*));
-    int dataA[4][5] = {
-        {1, 2, 3, 4, 5},
-        {2, 3, 4, 5, 6},
-        {3, 4, 5, 6, 7},
-        {4, 5, 6, 7, 8}
-    };
+    if (n1 > n || m1 > m) {
+        printf("Erreur : n1 <= n et m1 <= m\n");
+        return 1;
+    }
 
-    for (int i = 0; i < n; i++)
-        A[i] = dataA[i];
+    srand(time(NULL));
 
-    // Matrice B
-    int **B = malloc(n1 * sizeof(int*));
-    int dataB[2][3] = {
-        {4, 5, 6},
-        {5, 6, 7}
-    };
+    int **A = allocMat(n, m);
+    int **B = allocMat(n1, m1);
 
-    for (int i = 0; i < n1; i++)
-        B[i] = dataB[i];
+    initMatTriee(A, n, m);
+    initMatTriee(B, n1, m1);
 
-    printf("sousMat1 : %d\n", sousMat1(A, n, m, B, n1, m1));
-    printf("sousMat2 : %d\n", sousMat2(A, n, m, B, n1, m1));
+    clock_t t1 = clock();
+    int r1 = sousMat1(A, n, m, B, n1, m1);
+    clock_t t2 = clock();
 
-    free(A);
-    free(B);
+    int r2 = sousMat2(A, n, m, B, n1, m1);
+    clock_t t3 = clock();
+
+    printf("sousMat1 : %s | Temps = %.6f s\n",
+           r1 ? "TROUVEE" : "NON TROUVEE",
+           (double)(t2 - t1) / CLOCKS_PER_SEC);
+
+    printf("sousMat2 : %s | Temps = %.6f s\n",
+           r2 ? "TROUVEE" : "NON TROUVEE",
+           (double)(t3 - t2) / CLOCKS_PER_SEC);
+
+    freeMat(A, n);
+    freeMat(B, n1);
 
     return 0;
 }
