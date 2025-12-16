@@ -17,16 +17,16 @@ void freeMat(int **M, int n) {
     free(M);
 }
 
-/* ============== Initialisation ============== */
+/* ================= Initialisation ================= */
 
-/* Matrices NON triées (pour sousMat1) */
+/* Matrices NON triées */
 void initMatNonTriee(int **M, int n, int m) {
     for (int i = 0; i < n; i++)
         for (int j = 0; j < m; j++)
             M[i][j] = rand() % 100;
 }
 
-/* Matrices triées par ligne (pour sousMat2) */
+/* Matrices triées par ligne */
 void initMatTriee(int **M, int n, int m) {
     for (int i = 0; i < n; i++) {
         int val = rand() % 5;
@@ -38,18 +38,20 @@ void initMatTriee(int **M, int n, int m) {
 }
 
 /* ================= sousMat1 ================= */
-/* Méthode naïve – matrices non triées */
+/* Méthode naïve */
 
 int sousMat1(int **A, int n, int m, int **B, int n1, int m1) {
     for (int i = 0; i <= n - n1; i++) {
         for (int j = 0; j <= m - m1; j++) {
             int ok = 1;
-            for (int ii = 0; ii < n1 && ok; ii++)
-                for (int jj = 0; jj < m1; jj++)
+            for (int ii = 0; ii < n1 && ok; ii++) {
+                for (int jj = 0; jj < m1; jj++) {
                     if (A[i + ii][j + jj] != B[ii][jj]) {
                         ok = 0;
                         break;
                     }
+                }
+            }
             if (ok) return 1;
         }
     }
@@ -57,13 +59,12 @@ int sousMat1(int **A, int n, int m, int **B, int n1, int m1) {
 }
 
 /* ================= sousMat2 ================= */
-/* Méthode optimisée – matrices triées par ligne */
+/* Méthode optimisée (tri par ligne) */
 
 int sousMat2(int **A, int n, int m, int **B, int n1, int m1) {
     for (int i = 0; i <= n - n1; i++) {
         for (int j = 0; j <= m - m1; j++) {
 
-            /* Exploitation du tri (élimination rapide) */
             if (A[i][j] > B[0][0]) continue;
             if (A[i][j + m1 - 1] < B[0][m1 - 1]) continue;
 
@@ -73,11 +74,12 @@ int sousMat2(int **A, int n, int m, int **B, int n1, int m1) {
                 if (A[i + ii][j] > B[ii][0]) { ok = 0; break; }
                 if (A[i + ii][j + m1 - 1] < B[ii][m1 - 1]) { ok = 0; break; }
 
-                for (int jj = 0; jj < m1; jj++)
+                for (int jj = 0; jj < m1; jj++) {
                     if (A[i + ii][j + jj] != B[ii][jj]) {
                         ok = 0;
                         break;
                     }
+                }
             }
             if (ok) return 1;
         }
@@ -99,13 +101,14 @@ int main() {
 
     srand(time(NULL));
 
-    /* Tailles de A (comme demandé) */
-    int taillesA[] = {100, 200, 500,700, 1000, 2000, 3000, 5000};
-    int nbA = sizeof(taillesA) / sizeof(int);
-
-    /* Tailles de B */
+    int taillesA[] = {100, 200, 500, 700, 1000, 2000, 3000, 5000};
     int taillesB[] = {2, 3, 4};
+
+    int nbA = sizeof(taillesA) / sizeof(int);
     int nbB = sizeof(taillesB) / sizeof(int);
+
+    int REP = 1000;              /* répétitions */
+    volatile int res = 0;        /* empêche l’optimisation */
 
     for (int a = 0; a < nbA; a++) {
         for (int b = 0; b < nbB; b++) {
@@ -115,11 +118,9 @@ int main() {
             int n1 = taillesB[b];
             int m1 = taillesB[b];
 
-            /* Matrices pour sousMat1 (non triées) */
             int **A1 = allocMat(n, m);
             int **B1 = allocMat(n1, m1);
 
-            /* Matrices pour sousMat2 (triées) */
             int **A2 = allocMat(n, m);
             int **B2 = allocMat(n1, m1);
 
@@ -130,14 +131,16 @@ int main() {
             initMatTriee(B2, n1, m1);
 
             clock_t t1 = clock();
-            sousMat1(A1, n, m, B1, n1, m1);
+            for (int r = 0; r < REP; r++)
+                res += sousMat1(A1, n, m, B1, n1, m1);
             clock_t t2 = clock();
 
-            sousMat2(A2, n, m, B2, n1, m1);
+            for (int r = 0; r < REP; r++)
+                res += sousMat2(A2, n, m, B2, n1, m1);
             clock_t t3 = clock();
 
-            double T1 = (double)(t2 - t1) / CLOCKS_PER_SEC;
-            double T2 = (double)(t3 - t2) / CLOCKS_PER_SEC;
+            double T1 = (double)(t2 - t1) / CLOCKS_PER_SEC / REP;
+            double T2 = (double)(t3 - t2) / CLOCKS_PER_SEC / REP;
 
             printf("n=%d n1=%d | sousMat1=%.6f s | sousMat2=%.6f s\n",
                    n, n1, T1, T2);
@@ -154,6 +157,6 @@ int main() {
 
     fclose(f);
     printf("\nRésultats sauvegardés dans resultats_sous_matrice.csv\n");
+
     return 0;
 }
-
