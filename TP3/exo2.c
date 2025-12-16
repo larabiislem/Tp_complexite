@@ -2,11 +2,12 @@
 #include <stdlib.h>
 #include <time.h>
 
-/* Allocation matrices   */
+/* ================= Allocation ================= */
+
 int **allocMat(int n, int m) {
-    int **M = malloc(n * sizeof(int *));
+    int **M = (int **)malloc(n * sizeof(int *));
     for (int i = 0; i < n; i++)
-        M[i] = malloc(m * sizeof(int));
+        M[i] = (int *)malloc(m * sizeof(int));
     return M;
 }
 
@@ -16,123 +17,143 @@ void freeMat(int **M, int n) {
     free(M);
 }
 
-/* Initialisation triee  */
+/* ============== Initialisation ============== */
+
+/* Matrices NON triées (pour sousMat1) */
+void initMatNonTriee(int **M, int n, int m) {
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < m; j++)
+            M[i][j] = rand() % 100;
+}
+
+/* Matrices triées par ligne (pour sousMat2) */
 void initMatTriee(int **M, int n, int m) {
-    int val = rand() % 5;
     for (int i = 0; i < n; i++) {
+        int val = rand() % 5;
         for (int j = 0; j < m; j++) {
-            val += rand() % 3;   // garantit ordre croissant par ligne
+            val += rand() % 3;
             M[i][j] = val;
         }
     }
 }
 
-/* sousMat1 : naïve      */
-int sousMat1(int **A, int n, int m, int **B, int n1, int m1) {
+/* ================= sousMat1 ================= */
+/* Méthode naïve – matrices non triées */
 
+int sousMat1(int **A, int n, int m, int **B, int n1, int m1) {
     for (int i = 0; i <= n - n1; i++) {
         for (int j = 0; j <= m - m1; j++) {
-
             int ok = 1;
-
-            for (int ii = 0; ii < n1 && ok; ii++) {
-                for (int jj = 0; jj < m1; jj++) {
+            for (int ii = 0; ii < n1 && ok; ii++)
+                for (int jj = 0; jj < m1; jj++)
                     if (A[i + ii][j + jj] != B[ii][jj]) {
                         ok = 0;
                         break;
                     }
-                }
-            }
-
             if (ok) return 1;
         }
     }
     return 0;
 }
 
-/* sousMat2 : optimisee  */
+/* ================= sousMat2 ================= */
+/* Méthode optimisée – matrices triées par ligne */
+
 int sousMat2(int **A, int n, int m, int **B, int n1, int m1) {
-
     for (int i = 0; i <= n - n1; i++) {
-
         for (int j = 0; j <= m - m1; j++) {
 
-            // Filtrage rapide (lignes triees)
+            /* Exploitation du tri (élimination rapide) */
             if (A[i][j] > B[0][0]) continue;
             if (A[i][j + m1 - 1] < B[0][m1 - 1]) continue;
 
             int ok = 1;
-
-            // Verif premiere ligne
-            for (int jj = 0; jj < m1; jj++) {
-                if (A[i][j + jj] != B[0][jj]) {
-                    ok = 0;
-                    break;
-                }
-            }
-
-            // Verif autres lignes
-            for (int ii = 1; ii < n1 && ok; ii++) {
+            for (int ii = 0; ii < n1 && ok; ii++) {
 
                 if (A[i + ii][j] > B[ii][0]) { ok = 0; break; }
                 if (A[i + ii][j + m1 - 1] < B[ii][m1 - 1]) { ok = 0; break; }
 
-                for (int jj = 0; jj < m1; jj++) {
+                for (int jj = 0; jj < m1; jj++)
                     if (A[i + ii][j + jj] != B[ii][jj]) {
                         ok = 0;
                         break;
                     }
-                }
             }
-
             if (ok) return 1;
         }
     }
     return 0;
 }
 
-int main(int argc, char *argv[]) {
+/* ==================== MAIN ==================== */
 
-    if (argc != 5) {
-        printf("Usage : %s n m n1 m1\n", argv[0]);
+int main() {
+
+    FILE *f = fopen("resultats_sous_matrice.csv", "w");
+    if (!f) {
+        printf("Erreur ouverture fichier\n");
         return 1;
     }
 
-    int n  = atoi(argv[1]);
-    int m  = atoi(argv[2]);
-    int n1 = atoi(argv[3]);
-    int m1 = atoi(argv[4]);
-
-    if (n1 > n || m1 > m) {
-        printf("Erreur : n1 <= n et m1 <= m\n");
-        return 1;
-    }
+    fprintf(f, "n,m,n1,m1,Temps_sousMat1,Temps_sousMat2\n");
 
     srand(time(NULL));
 
-    int **A = allocMat(n, m);
-    int **B = allocMat(n1, m1);
+    /* Tailles de A (comme demandé) */
+    int taillesA[] = {100, 200, 500,700, 1000, 2000, 3000, 5000};
+    int nbA = sizeof(taillesA) / sizeof(int);
 
-    initMatTriee(A, n, m);
-    initMatTriee(B, n1, m1);
+    /* Tailles de B */
+    int taillesB[] = {2, 3, 4};
+    int nbB = sizeof(taillesB) / sizeof(int);
 
-    clock_t t1 = clock();
-    int r1 = sousMat1(A, n, m, B, n1, m1);
-    clock_t t2 = clock();
+    for (int a = 0; a < nbA; a++) {
+        for (int b = 0; b < nbB; b++) {
 
-    int r2 = sousMat2(A, n, m, B, n1, m1);
-    clock_t t3 = clock();
+            int n = taillesA[a];
+            int m = taillesA[a];
+            int n1 = taillesB[b];
+            int m1 = taillesB[b];
 
-    printf("sousMat1 : %s | Temps = %.6f s\n",
-           r1 ? "TROUVEE" : "NON TROUVEE",
-           (double)(t2 - t1) / CLOCKS_PER_SEC);
+            /* Matrices pour sousMat1 (non triées) */
+            int **A1 = allocMat(n, m);
+            int **B1 = allocMat(n1, m1);
 
-    printf("sousMat2 : %s | Temps = %.6f s\n",
-           r2 ? "TROUVEE" : "NON TROUVEE",
-           (double)(t3 - t2) / CLOCKS_PER_SEC);
+            /* Matrices pour sousMat2 (triées) */
+            int **A2 = allocMat(n, m);
+            int **B2 = allocMat(n1, m1);
 
-    freeMat(A, n);
-    freeMat(B, n1);
+            initMatNonTriee(A1, n, m);
+            initMatNonTriee(B1, n1, m1);
 
+            initMatTriee(A2, n, m);
+            initMatTriee(B2, n1, m1);
+
+            clock_t t1 = clock();
+            sousMat1(A1, n, m, B1, n1, m1);
+            clock_t t2 = clock();
+
+            sousMat2(A2, n, m, B2, n1, m1);
+            clock_t t3 = clock();
+
+            double T1 = (double)(t2 - t1) / CLOCKS_PER_SEC;
+            double T2 = (double)(t3 - t2) / CLOCKS_PER_SEC;
+
+            printf("n=%d n1=%d | sousMat1=%.6f s | sousMat2=%.6f s\n",
+                   n, n1, T1, T2);
+
+            fprintf(f, "%d,%d,%d,%d,%.6f,%.6f\n",
+                    n, m, n1, m1, T1, T2);
+
+            freeMat(A1, n);
+            freeMat(B1, n1);
+            freeMat(A2, n);
+            freeMat(B2, n1);
+        }
+    }
+
+    fclose(f);
+    printf("\nRésultats sauvegardés dans resultats_sous_matrice.csv\n");
     return 0;
 }
+
