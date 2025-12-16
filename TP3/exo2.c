@@ -101,7 +101,7 @@ int main() {
 
     srand(time(NULL));
 
-    int taillesA[] = {100, 200, 500, 700, 1000, 2000, 3000, 5000};
+    int taillesA[] = {100, 200, 500, 700, 1000, 2000, 3000};
     int taillesB[] = {2, 3, 4};
 
     int nbA = sizeof(taillesA) / sizeof(int);
