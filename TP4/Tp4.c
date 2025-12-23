@@ -28,7 +28,7 @@ void TriBulle(int T[], int n) {
 }
 
 /* ===================================== */
-/* 1.b Tri à bulles optimisé             */
+/* 1. b Tri à bulles optimisé             */
 /* ===================================== */
 void TriBulleOpt(int T[], int n) {
     int changement = 1;
@@ -128,21 +128,22 @@ void TriRapide(int tab[], int p, int r) {
 }
 
 /* ===================================== */
-/* 5. Tri par tas (Heap Sort)            */
+/* 5. Tri par tas (Heap Sort) - CORRIGÉ */
 /* ===================================== */
 void entasser(int T[], int n, int i) {
-    int min = i;
+    int max = i;
     int fg = 2 * i + 1;
     int fd = 2 * i + 2;
 
-    if (fg < n && T[fg] < T[min])
-        min = fg;
-    if (fd < n && T[fd] < T[min])
-        min = fd;
+    // Chercher le MAXIMUM (pour tri croissant)
+    if (fg < n && T[fg] > T[max])
+        max = fg;
+    if (fd < n && T[fd] > T[max])
+        max = fd;
 
-    if (min != i) {
-        permuter(&T[i], &T[min]);
-        entasser(T, n, min);
+    if (max != i) {
+        permuter(&T[i], &T[max]);
+        entasser(T, n, max);
     }
 }
 
